@@ -4,11 +4,19 @@ const readline = require("readline");
 
 (async () => {
   let dx = 0,
-    dy = 0;
+    dy = 0,
+    aim = 0;
   const commands = {
-    forward: (x) => (dx += x),
-    up: (y) => (dy -= y),
-    down: (y) => (dy += y),
+    forward: (x) => {
+      dx += x;
+      dy += aim * x;
+    },
+    up: (y) => {
+      aim -= y;
+    },
+    down: (y) => {
+      aim += y;
+    },
   };
 
   const rl = readline.createInterface({
@@ -18,7 +26,7 @@ const readline = require("readline");
   });
 
   rl.on("line", (line) => {
-    const [command, amount] = line.split(' ');
+    const [command, amount] = line.split(" ");
     commands[command](Number(amount));
   });
 
@@ -27,5 +35,7 @@ const readline = require("readline");
   let result = dx * dy;
   fs.writeFileSync("data.out", result.toString());
 
+  console.log("x", dx);
+  console.log("y", dy);
   console.log(result);
 })();
