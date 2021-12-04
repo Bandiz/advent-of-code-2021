@@ -3,7 +3,7 @@ const fs = require("fs");
 const readline = require("readline");
 
 (async () => {
-  const readings = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const readings = [];
 
   const rl = readline.createInterface({
     input: fs.createReadStream("data.in"),
@@ -13,28 +13,70 @@ const readline = require("readline");
 
   rl.on("line", (line) => {
     const bits = line.split("").map(Number);
-    for (let i = 0; i < bits.length; i++) {
-      readings[i] += bits[i] > 0 ? 1 : -1;
-    }
+    readings.push(bits);
   });
 
   await events.once(rl, "close");
 
-  console.log(readings);
+  function splitReadings(startPosition, filteredReadings) {
+    const positiveReadings = [];
+    const negativeReadings = [];
+    filteredReadings.forEach((x) => {
+      if (x[startPosition] > 0) {
+        positiveReadings.push(x);
+      } else {
+        negativeReadings.push(x);
+      }
+    });
+    return { positiveReadings, negativeReadings };
+  }
 
-  let gamma = parseInt(
-    readings.reduce((prev, curr) => `${prev}${curr > 0 ? "1" : "0"}`, ""),
-    2
-  );
-  let epsilon = parseInt(
-    readings.reduce((prev, curr) => `${prev}${curr > 0 ? "0" : "1"}`, ""),
-    2
-  );
+  function findOxygenGenRating(startPosition = 0, filteredReadings = readings) {
+    if (startPosition > 11) {
+      return "";
+    }
+    const { positiveReadings, negativeReadings } =
+      splitReadings(startPosition, filteredReadings);
 
-  console.log("gamma", gamma);
-  console.log("epsilon", epsilon);
+    if (positiveReadings.length == 1 && negativeReadings.length == 1) {
+      return "1";
+    }
 
-  let result = gamma * epsilon;
+    return (
+      `${positiveReadings.length >= negativeReadings.length ? "1" : "0"}` +
+      findOxygenGenRating(
+        startPosition + 1,
+        positiveReadings.length >= negativeReadings.length
+          ? positiveReadings
+          : negativeReadings
+      )
+    );
+  }
+
+  function findCO2ScrubberRating(
+    startPosition = 0,
+    filteredReadings = readings
+  ) {
+    const { positiveReadings, negativeReadings } =
+      splitReadings(startPosition, filteredReadings);
+
+    if (positiveReadings.length == 1 && negativeReadings.length == 1) {
+      return negativeReadings[0].join("");
+    }
+
+    return findCO2ScrubberRating(
+      startPosition + 1,
+      negativeReadings.length <= positiveReadings.length
+        ? negativeReadings
+        : positiveReadings
+    );
+  }
+
+  let oxygenRating = parseInt(findOxygenGenRating(), 2);
+  let scrubberRating = parseInt(findCO2ScrubberRating(), 2);
+
+  let result = oxygenRating * scrubberRating;
+
   fs.writeFileSync("data.out", result.toString());
 
   console.log(result);
