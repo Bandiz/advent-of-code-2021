@@ -18,7 +18,7 @@ const readline = require("readline");
     }
   });
 
-  function simulatePopulationGrowth(days) {
+  function simulatePopulationGrowth(days, fishQueue) {
     for (let day = 0; day < days; day++) {
       const newFish = fishQueue.shift();
       fishQueue.push(0);
@@ -32,8 +32,11 @@ const readline = require("readline");
 
   await events.once(rl, "close");
 
-  let resultPart1 = simulatePopulationGrowth(80);
-  let resultPart2 = simulatePopulationGrowth(256);
+  let fishQueue1 = [...fishQueue];
+  let fishQueue2 = [...fishQueue];
+
+  let resultPart1 = simulatePopulationGrowth(80, fishQueue1);
+  let resultPart2 = simulatePopulationGrowth(256, fishQueue2);
 
   fs.writeFileSync(
     "data.out",
