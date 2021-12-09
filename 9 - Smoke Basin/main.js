@@ -9,25 +9,25 @@ const readline = require("readline");
     terminal: false,
   });
 
-  const basin = [];
+  const ground = [];
 
   rl.on("line", (line) => {
     const points = line.split("").map(Number);
-    basin.push(points);
+    ground.push(points);
   });
 
   await events.once(rl, "close");
 
-  function calculateRiskLevel(basin) {
+  function calculateRiskLevel(ground) {
     const lowPoints = [];
 
-    for (let y = 0; y < basin.length; y++) {
-      for (let x = 0; x < basin[y].length; x++) {
-        const focusedPoint = basin[y][x];
-        let right = x + 1 == basin[y].length ? 10 : basin[y][x + 1],
-          left = x - 1 < 0 ? 10 : basin[y][x - 1],
-          up = y - 1 < 0 ? 10 : basin[y - 1][x],
-          down = y + 1 == basin.length ? 10 : basin[y + 1][x];
+    for (let y = 0; y < ground.length; y++) {
+      for (let x = 0; x < ground[y].length; x++) {
+        const focusedPoint = ground[y][x];
+        let right = x + 1 == ground[y].length ? 10 : ground[y][x + 1],
+          left = x - 1 < 0 ? 10 : ground[y][x - 1],
+          up = y - 1 < 0 ? 10 : ground[y - 1][x],
+          down = y + 1 == ground.length ? 10 : ground[y + 1][x];
 
         if (
           right > focusedPoint &&
@@ -43,8 +43,87 @@ const readline = require("readline");
     return lowPoints.reduce((prev, curr) => prev + curr + 1, 0);
   }
 
-  let resultPart1 = calculateRiskLevel(basin);
-  let resultPart2 = 0;
+  function calculateLargestBasins(ground) {
+    let largest = [],
+      larger = [],
+      large = [];
+    const visitedPoints = {};
+
+    function addPoint(point, basin) {
+      const { x, y } = point;
+      if (!visitedPoints[y]) {
+        visitedPoints[y] = [x];
+      } else {
+        visitedPoints[y].push(x);
+      }
+      if (!basin.find((p) => p.x === x && p.y === y)) {
+        basin.push(point);
+      }
+    }
+
+    function includesPoint({ y, x }) {
+      if (visitedPoints[y] && visitedPoints[y].includes(x)) {
+        return true;
+      }
+      return false;
+    }
+
+    function scanBasin(point, basin = []) {
+      const { x, y } = point;
+
+      if (includesPoint(point)) {
+        return [];
+      }
+
+      const availablePoints = [
+        x + 1 == ground[y].length || ground[y][x + 1] == 9
+          ? null
+          : { x: x + 1, y },
+        x - 1 < 0 || ground[y][x - 1] == 9 ? null : { x: x - 1, y },
+        y - 1 < 0 || ground[y - 1][x] == 9 ? null : { x, y: y - 1 },
+        y + 1 == ground.length || ground[y + 1][x] == 9
+          ? null
+          : {
+              x,
+              y: y + 1,
+            },
+      ].filter(Boolean);
+
+      addPoint(point, basin);
+
+      for (const availablePoint of availablePoints) {
+        scanBasin(availablePoint, basin);
+      }
+
+      return basin;
+    }
+
+    for (let y = 0; y < ground.length; y++) {
+      for (let x = 0; x < ground[y].length; x++) {
+        const point = { x, y };
+        if (ground[y][x] == 9 || includesPoint(point)) {
+          continue;
+        }
+        const basin = scanBasin(point);
+
+        if (basin.length > large.length) {
+          large = basin;
+        }
+        if (large.length > larger.length) {
+          large = larger;
+          larger = basin;
+        }
+        if (larger.length > largest.length) {
+          larger = largest;
+          largest = basin;
+        }
+      }
+    }
+    return large.length * larger.length * largest.length;
+  }
+
+  let resultPart1 = calculateRiskLevel(ground);
+  let resultPart2 = calculateLargestBasins(ground);
 
   fs.writeFileSync(
     "data.out",
