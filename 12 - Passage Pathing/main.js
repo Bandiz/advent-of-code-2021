@@ -32,7 +32,7 @@ const readline = require("readline");
     const start = cave["start"];
     const end = "end";
 
-    function findPaths(start, end, visitedPath = []) {
+    function findPaths(start, end, visitedPath = ["start"]) {
       const paths = [];
       for (const node of start) {
         if (node == "start") continue;
@@ -40,11 +40,48 @@ const readline = require("readline");
           paths.push([...visitedPath, end]);
           continue;
         }
-        if (visitedPath.includes(node)) {
-          const isOneWay = node.charCodeAt(0) >= 97;
-          if (isOneWay)
+        if (visitedPath.includes(node) && isOneWay(node)) {
+          //dead end
+          continue;
+        }
+        const newStart = cave[node];
+        paths.push(...findPaths(newStart, end, [...visitedPath, node]));
+      }
+      return paths;
+    }
+
+    const paths = findPaths(start, end);
+
+    return paths.length;
+  }
+
+  function isOneWay(node) {
+    return node.charCodeAt(0) >= 97;
+  }
+
+  function calculateNumberOfPathsPart2(cave) {
+    const start = cave["start"];
+    const end = "end";
+
+    function findPaths(start, end, visitedPath = ["start"]) {
+      const paths = [];
+      for (const node of start) {
+        if (node == "start") continue;
+        if (node == end) {
+          paths.push([...visitedPath, end]);
+          continue;
+        }
+        if (visitedPath.includes(node) && isOneWay(node)) {
+          const lookup = visitedPath.reduce((prev, curr) => {
+            if (isOneWay(curr)) {
+              prev[curr] = ++prev[curr] || 1;
+            }
+            return prev;
+          }, {});
+          if (Object.values(lookup).some((x) => x > 1)) {
             //dead end
             continue;
+          }
         }
         const newStart = cave[node];
         paths.push(...findPaths(newStart, end, [...visitedPath, node]));
@@ -60,7 +97,7 @@ const readline = require("readline");
   console.log(cave);
 
   let resultPart1 = calculateNumberOfPaths(cave);
-  let resultPart2 = 0;
+  let resultPart2 = calculateNumberOfPathsPart2(cave);
 
   fs.writeFileSync(
     "data.out",
