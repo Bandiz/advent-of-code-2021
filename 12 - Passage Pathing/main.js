@@ -1,6 +1,5 @@
 const events = require("events");
 const fs = require("fs");
-const path = require("path/posix");
 const readline = require("readline");
 
 (async () => {
