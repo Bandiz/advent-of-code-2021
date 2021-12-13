@@ -87,41 +87,46 @@ const readline = require("readline");
     paperLimits.maxX = Math.floor(paperLimits.maxX / 2) - i;
   }
 
-  function calculateFirstFoldPoints(paper, paperLimits, instruction) {
+  function executeInstruction(paper, paperLimits, instruction) {
     const { axis, offset } = instruction;
-
     if (axis === "y") {
       foldByAxisY(paper, paperLimits, offset);
     } else {
       foldByAxisX(paper, paperLimits, offset);
     }
+  }
+
+  function calculateFirstFoldPoints(paper, paperLimits, instructions) {
+    const instruction = instructions.shift();
+    executeInstruction(paper, paperLimits, instruction);
 
     return Object.values(paper).reduce((prev, curr) => prev + curr.length, 0);
   }
 
+  function finishInstructions(paper, paperLimits, instructions) {
+    for (const instruction of instructions) {
+      executeInstruction(paper, paperLimits, instruction);
+    }
+    return `\n${printPaper(paper, paperLimits)}`;
+  }
+
   function printPaper(paper, paperLimits) {
     const { maxX, maxY } = paperLimits;
+    const lines = [];
     for (let y = 0; y <= maxY; y++) {
-      let line = [];
+      const line = [];
       for (let x = 0; x <= maxX; x++) {
         typeof paper[y] === "undefined" || !paper[y].includes(x)
           ? line.push(".")
           : line.push("#");
       }
-      console.log(line.join(""));
+      lines.push(line.join(""));
     }
+    return lines.join("\n");
   }
 
-  let resultPart1 = calculateFirstFoldPoints(
-    paper,
-    paperLimits,
-    instructions[0]
-  );
-  let resultPart2 = 0;
-
-  // console.log("-----------");
-  // printPaper(paper, paperLimits);
-  // calculateFirstFoldPoints(paper, paperLimits, instructions[1]);
+  let resultPart1 = calculateFirstFoldPoints(paper, paperLimits, instructions);
+  let resultPart2 = finishInstructions(paper, paperLimits, instructions);
 
   fs.writeFileSync(
     "data.out",
@@ -130,7 +135,4 @@ const readline = require("readline");
 
   console.log("part 1", resultPart1);
   console.log("part 2", resultPart2);
-
-  // console.log("-----------");
-  // printPaper(paper, paperLimits);
 })();
