@@ -69,8 +69,25 @@ const readline = require("readline");
     return path.find((p) => p.x == end.x && p.y == end.y).value;
   }
 
+  function generateFullMap(maze) {
+    const superMaze = [];
+
+    for (let z1 = 0; z1 < 5; z1++) {
+      for (let y = 0; y < maze.length; y++) {
+        let row = [];
+        for (let z2 = 0; z2 < 5; z2++)
+          for (let x = 0; x < maze[y].length; x++) {
+            const value = maze[y][x] + 1 * z1 + 1 * z2;
+            row.push(value > 9 ? value - 9 : value);
+          }
+        superMaze.push(row);
+      }
+    }
+    return getLowestScore(superMaze);
+  }
+
   let resultPart1 = getLowestScore(maze);
-  let resultPart2 = 0;
+  let resultPart2 = generateFullMap(maze);
 
   fs.writeFileSync(
     "data.out",
