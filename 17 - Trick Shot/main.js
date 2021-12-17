@@ -24,12 +24,13 @@ const readline = require("readline");
 
   await events.once(rl, "close");
 
-  function calculatePeakHeight(area, target) {
-    const { x2, y1 } = target;
+  function simulateVelocities(target) {
+    const { x1, y1, x2, y2 } = target;
     let maxHeight = 0;
+    let hits = 0;
 
     for (let xVelocity = 0; xVelocity < x2 + 1; xVelocity++) {
-      for (let yVelocity = 0; yVelocity < Math.abs(y1); yVelocity++) {
+      for (let yVelocity = y1; yVelocity < Math.abs(y1); yVelocity++) {
         const velocity = { x: xVelocity, y: yVelocity };
         const position = { x: 0, y: 0 };
         let highestPoint = 0;
@@ -45,8 +46,14 @@ const readline = require("readline");
           if (position.x > x2 || position.y < y1) {
             break;
           }
-          
-          if (area.some(({ x, y }) => x == position.x && y == position.y)) {
+
+          if (
+            x1 <= position.x &&
+            position.x <= x2 &&
+            y1 <= position.y &&
+            position.y <= y2
+          ) {
+            hits++;
             break;
           }
         }
@@ -54,25 +61,13 @@ const readline = require("readline");
       }
     }
 
-    return maxHeight;
+    return { maxHeight, hits };
   }
 
-  function prepareTargetArea(target) {
-    const area = [];
-    const { x1, y1, x2, y2 } = target;
+  const results = simulateVelocities(target);
 
-    for (let x = x1; x <= x2; x++) {
-      for (let y = y1; y <= y2; y++) {
-        area.push({ x, y });
-      }
-    }
-    return area;
-  }
-
-  const targetArea = prepareTargetArea(target);
-
-  let resultPart1 = calculatePeakHeight(targetArea, target);
-  let resultPart2 = 0;
+  let resultPart1 = results.maxHeight;
+  let resultPart2 = results.hits;
 
   fs.writeFileSync(
     "data.out",
