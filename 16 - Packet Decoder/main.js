@@ -78,9 +78,9 @@ const readline = require("readline");
             if (packet[i] === "0") {
               isLast = true;
             }
-            numbers.push(parseInt(packet.substring(i + 1, (i += 5)), 2));
+            numbers.push(packet.substring(i + 1, (i += 5)));
           }
-          newPacket.literal = Number.parseInt(numbers.join(""));
+          newPacket.literal = parseInt(numbers.join(""), 2);
           break;
         }
         default:
@@ -119,10 +119,52 @@ const readline = require("readline");
     }
   }
 
+  function executeOperations(node) {
+    switch (node.type) {
+      case 0:
+        return node.subPackets.reduce(
+          (prev, curr) => prev + executeOperations(curr),
+          0
+        );
+      case 1:
+        return node.subPackets.reduce(
+          (prev, curr) => prev * executeOperations(curr),
+          1
+        );
+      case 2:
+        return node.subPackets.reduce(
+          (prev, curr) => Math.min(prev, executeOperations(curr)),
+          Number.MAX_VALUE
+        );
+      case 3:
+        return node.subPackets.reduce(
+          (prev, curr) => Math.max(prev, executeOperations(curr)),
+          0
+        );
+      case 4:
+        return node.literal;
+      case 5:
+        return executeOperations(node.subPackets[0]) >
+          executeOperations(node.subPackets[1])
+          ? 1
+          : 0;
+      case 6:
+        return executeOperations(node.subPackets[0]) <
+          executeOperations(node.subPackets[1])
+          ? 1
+          : 0;
+      case 7:
+        return executeOperations(node.subPackets[0]) ===
+          executeOperations(node.subPackets[1])
+          ? 1
+          : 0;
+    }
+  }
+
   const tree = formPacketTree(packet);
 
   let resultPart1 = calculateVersionNumbers(tree);
-  let resultPart2 = 0;
+  let resultPart2 = executeOperations(tree[0]);
 
   fs.writeFileSync(
     "data.out",
