@@ -13,17 +13,6 @@ const readline = require("readline");
 
   rl.on("line", (line) => {
     const pairs = JSON.parse(line);
-
-    function setParent(child, parent) {
-      child.forEach((pair) => {
-        if (typeof pair === "object") setParent(pair, child);
-      });
-      if (parent) child.push(parent);
-    }
-    pairs.forEach((pair) => {
-      if (typeof pair === "object") setParent(pair, pairs);
-    });
-
     numbers.push(pairs);
   });
 
@@ -50,11 +39,15 @@ const readline = require("readline");
     function sumNumbers(pair) {
       while (true) {
         let exploded = checkDepth(pair);
-        if (exploded) continue;
 
+        if (exploded) {
+          continue;
+        }
         let wasSplit = split(pair);
-        if (wasSplit) continue;
 
+        if (wasSplit) {
+          continue;
+        }
         if (!exploded && !wasSplit) break;
       }
       return pair;
@@ -74,7 +67,7 @@ const readline = require("readline");
       }
 
       function explodeLeft(parent, value) {
-        const parentParent = parent[2];
+        const [, , parentParent] = parent;
 
         if (typeof parentParent === "undefined") {
           return;
@@ -202,6 +195,20 @@ const readline = require("readline");
       return exploded;
     }
   }
+
+  function addParentLinks(root) {
+    function setParent(child, parent) {
+      child.forEach((pair) => {
+        if (typeof pair === "object") setParent(pair, child);
+      });
+      if (parent) child.push(parent);
+    }
+    root.forEach((pair) => {
+      if (typeof pair === "object") setParent(pair, root);
+    });
+  }
+
+  numbers.forEach((pairs) => addParentLinks(pairs));
 
   const sum = sumSnailfishNumbers(numbers);
 
