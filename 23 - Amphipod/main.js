@@ -30,15 +30,19 @@ const readline = require("readline");
       C: 2,
       D: 3,
     };
-    const roomLocationMap = {};
     const roomEntrances = [];
     const rooms = [];
 
-    for (let i = 0, r = 0; i < maze[2].length; i++) {
-      if (maze[2][i] !== "#") {
-        roomLocationMap[r++] = i - 1;
-        roomEntrances.push(i - 1);
-        rooms.push([maze[2][i], maze[3][i]]);
+    for (let x = 0; x < maze[2].length; x++) {
+      if (maze[2][x] !== "#") {
+        roomEntrances.push(x - 1);
+        const room = [];
+
+        for (let y = 2; y < maze.length - 1; y++) {
+          room.push(maze[y][x]);
+        }
+
+        rooms.push(room);
       }
     }
 
@@ -73,18 +77,17 @@ const readline = require("readline");
         const amphipod = hallway[h];
         if (!amphipod) continue;
 
-        const targetRoom = amphipodTargetRoomMap[amphipod];
-        const roomLookup = getRoomLookup(rooms[targetRoom]);
-        const roomKeys = Object.keys(roomLookup);
+        const targetRoomIndex = amphipodTargetRoomMap[amphipod];
+        const targetRoom = rooms[targetRoomIndex];
+        const someEmpty = targetRoom.some((x) => x == 0);
+        const allFull = targetRoom.every((x) => x !== 0);
+        const allCorrect = targetRoom.every(
+          (x) => x == 0 || amphipodTargetRoomMap[x] === targetRoomIndex
+        );
 
-        if (
-          roomKeys.length == 2 ||
-          (roomKeys.length == 1 && typeof roomLookup[amphipod] === "undefined")
-        ) {
-          continue;
-        }
+        if ((someEmpty && !allCorrect) || allFull) continue;
 
-        const entrance = roomLocationMap[targetRoom];
+        const entrance = roomEntrances[targetRoomIndex];
         const step = entrance > h ? 1 : -1;
         let currentPosition = h;
         let isBlocked = false;
@@ -101,13 +104,13 @@ const readline = require("readline");
 
         if (isBlocked) continue;
 
-        const lastOpenSpace = rooms[targetRoom].lastIndexOf(0);
+        const lastOpenSpace = rooms[targetRoomIndex].lastIndexOf(0);
         movementCost += (lastOpenSpace + 1) * priceMap[amphipod];
 
         const newMap = copyMap(currentMap);
 
         newMap[0][h] = 0;
-        newMap[1][targetRoom][lastOpenSpace] = amphipod;
+        newMap[1][targetRoomIndex][lastOpenSpace] = amphipod;
 
         const newCost = movementCost + currentCost;
         const oldCost = states[[newMap[0], newMap[1]]] || Number.MAX_VALUE;
@@ -118,35 +121,23 @@ const readline = require("readline");
       }
 
       for (let r = 0; r < rooms.length; r++) {
-        let steps = 0;
         const currentRoom = rooms[r];
-        const isSecondSlotCorrect = amphipodTargetRoomMap[currentRoom[1]] == r;
-        const isFirstSlotCorrect = amphipodTargetRoomMap[currentRoom[0]] == r;
-        const isFirstSlotEmpty = currentRoom[0] == 0;
-        const isSecondSlotEmpty = currentRoom[1] == 0;
+        const someEmpty = currentRoom.some((x) => x == 0);
+        const allEmpty = currentRoom.every((x) => x == 0);
+        const allCorrect = currentRoom.every(
+          (x) => x == 0 || amphipodTargetRoomMap[x] === r
+        );
 
-        if (
-          (isFirstSlotCorrect && isSecondSlotCorrect) ||
-          (isFirstSlotEmpty && isSecondSlotEmpty) ||
-          (isFirstSlotEmpty && isSecondSlotCorrect)
-        )
-          continue;
+        if ((someEmpty && allCorrect) || allEmpty) continue;
 
-        let amphipod;
         const roomCopy = [...currentRoom];
+        const lastEmpty = currentRoom.lastIndexOf(0);
+        const amphipod = currentRoom[lastEmpty + 1];
 
-        if (currentRoom[0]) {
-          amphipod = currentRoom[0];
-          roomCopy[0] = 0;
-          steps++;
-        } else {
-          amphipod = currentRoom[1];
-          roomCopy[1] = 0;
-          steps += 2;
-        }
+        roomCopy[lastEmpty + 1] = 0;
 
-        let stepsLeft = steps;
-        let newPosition = roomLocationMap[r] - 1;
+        let stepsLeft = lastEmpty + 2;
+        let newPosition = roomEntrances[r] - 1;
         let roomsCopy = rooms.map((room, index) =>
           index == r ? roomCopy : room
         );
@@ -172,8 +163,8 @@ const readline = require("readline");
           newPosition--;
         }
 
-        let stepsRight = steps;
-        newPosition = roomLocationMap[r] + 1;
+        let stepsRight = lastEmpty + 2;
+        newPosition = roomEntrances[r] + 1;
         roomsCopy = rooms.map((room, index) => (index == r ? roomCopy : room));
 
         while (newPosition < hallway.length) {
@@ -223,19 +214,17 @@ const readline = require("readline");
       }
     }
 
-    function getRoomLookup(room) {
-      return room.reduce((prev, curr) => {
-        if (!curr) return prev;
-        prev[curr] = (prev[curr] ?? 0) + 1;
-        return prev;
-      }, {});
-    }
-
     return leastEnergy;
   }
 
+  function calculateExpandedMaze(maze) {
+    const mazeCopy = structuredClone(maze);
+    mazeCopy.splice(3, 0, `  #D#C#B#A#  `, `  #D#B#A#C#  `);
+    return calculateShortestAlignment(mazeCopy);
+  }
+
   let resultPart1 = calculateShortestAlignment(maze);
-  let resultPart2 = 0;
+  let resultPart2 = calculateExpandedMaze(maze);
 
   fs.writeFileSync(
     "data.out",
